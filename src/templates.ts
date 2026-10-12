@@ -44,14 +44,42 @@ function mark(c: CardData, color: string, size = 44) {
   return `<div style="display:flex;align-items:center;gap:16px">${logo}<span style="font-family:'${c.headingFont}';font-size:${Math.round(size * 0.64)}px;font-weight:600;color:${color};letter-spacing:-0.01em">${esc(c.siteName)}</span></div>`;
 }
 
-function textBlock(c: CardData, fg: string, muted: string, opts: { max?: number; width?: number; eyebrowColor?: string } = {}) {
-  const title = clip(c.title, 96);
+function textBlock(c: CardData, fg: string, muted: string, opts: { max?: number; width?: number; eyebrowColor?: string; compact?: boolean } = {}) {
+  const title = clip(c.title, opts.compact ? 70 : 96);
   const size = fitTitle(title, opts.max ?? 84);
   return `<div style="display:flex;flex-direction:column;gap:20px;max-width:${opts.width ?? 960}px">
   ${c.eyebrow ? `<div style="display:flex;font-family:'${c.bodyFont}';font-size:24px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:${opts.eyebrowColor ?? c.colors.accent}">${esc(c.eyebrow)}</div>` : ""}
   <div style="font-family:'${c.headingFont}';font-size:${size}px;font-weight:${c.headingWeight};line-height:1.06;letter-spacing:${c.headingWeight >= 600 ? "-0.02em" : "-0.01em"};color:${fg};text-wrap:balance">${esc(title)}</div>
-  ${c.description ? `<div style="font-family:'${c.bodyFont}';font-size:30px;line-height:1.38;color:${muted};text-wrap:pretty">${esc(clip(c.description, 120))}</div>` : ""}
+  ${c.description ? `<div style="font-family:'${c.bodyFont}';font-size:${opts.compact ? 26 : 30}px;line-height:1.38;color:${muted};text-wrap:pretty">${esc(clip(c.description, opts.compact ? 90 : 120))}</div>` : ""}
 </div>`;
+}
+
+/** How big the page's picture is drawn: tall for flyers and phone screens, wide for photos. */
+function mediaSize(c: CardData): { w: number; h: number } {
+  const a = c.imageAspect || 1;
+  const maxH = c.height - 120;
+  if (a < 0.9) return { w: Math.round(Math.max(300, Math.min(maxH * a, 440))), h: maxH };
+  if (a <= 1.15) return { w: 430, h: 430 };
+  return { w: 500, h: Math.round(Math.max(280, Math.min(500 / a, maxH))) };
+}
+
+/**
+ * The content area every built-in template shares: logo, text and an optional footer in a column,
+ * and the page's own picture beside them in a rounded frame when there is one.
+ */
+function body(c: CardData, o: { pad: [number, number, number, number]; fg: string; muted: string; eyebrowColor?: string; max?: number; footer?: string }) {
+  const m = c.image ? mediaSize(c) : null;
+  const gap = 56;
+  const textW = c.width - o.pad[1] - o.pad[3] - (m ? m.w + gap : 0);
+  const column = `<div style="display:flex;flex-direction:column;justify-content:space-between;width:${textW}px;height:100%">
+    ${mark(c, o.fg)}
+    ${textBlock(c, o.fg, o.muted, { max: m ? Math.min(o.max ?? 84, 64) : o.max, width: textW, eyebrowColor: o.eyebrowColor, compact: !!m })}
+    ${o.footer ?? ""}
+  </div>`;
+  const media = m
+    ? `<div style="display:flex;align-items:center;margin-left:${gap}px"><img src="${esc(c.image!)}" style="width:${m.w}px;height:${m.h}px;object-fit:cover;border-radius:22px;border:1px solid ${alpha(o.fg, 0.12)};box-shadow:0 30px 70px rgb(0 0 0 / 0.35)"></div>`
+    : "";
+  return `<div style="position:relative;display:flex;width:100%;height:100%;padding:${o.pad.map((n) => n + "px").join(" ")}">${column}${media}</div>`;
 }
 
 const frame = (c: CardData, bg: string, inner: string) =>
@@ -64,11 +92,12 @@ const minimal: Template = (c) => {
     c,
     bg,
     `${backdrop(c, `<div style="position:absolute;left:0;top:0;width:${c.width}px;height:10px;background:${accent}"></div>`)}
-<div style="position:relative;display:flex;flex-direction:column;justify-content:space-between;width:100%;height:100%;padding:72px 80px 64px">
-  ${mark(c, fg)}
-  ${textBlock(c, fg, muted)}
-  <div style="display:flex;font-size:24px;color:${muted};letter-spacing:0.01em">${esc(c.host)}${readablePath(c.path) ? `<span style="opacity:0.6">${esc(c.path)}</span>` : ""}</div>
-</div>`,
+${body(c, {
+  pad: [72, 80, 64, 80],
+  fg,
+  muted,
+  footer: `<div style="display:flex;font-size:24px;color:${muted};letter-spacing:0.01em">${esc(c.host)}${readablePath(c.path) && !c.image ? `<span style="opacity:0.6">${esc(c.path)}</span>` : ""}</div>`,
+})}`,
   );
 };
 
@@ -88,10 +117,7 @@ const glow: Template = (c) => {
     bg,
     `${backdrop(c, blobs)}
 <div style="position:absolute;left:0;top:0;width:${c.width}px;height:${c.height}px;background:linear-gradient(to top, ${alpha(bg, 0.85)} 0%, ${alpha(bg, 0.35)} 45%, ${alpha(bg, 0)} 100%)"></div>
-<div style="position:relative;display:flex;flex-direction:column;justify-content:space-between;width:100%;height:100%;padding:72px 80px 68px">
-  ${mark(c, fg)}
-  ${textBlock(c, fg, muted, { eyebrowColor: fg })}
-</div>`,
+${body(c, { pad: [72, 80, 68, 80], fg, muted, eyebrowColor: fg })}`,
   );
 };
 
@@ -99,8 +125,11 @@ const glow: Template = (c) => {
 const split: Template = (c) => {
   const { background: bg, foreground: fg, muted, accent } = c.colors;
   const panelW = Math.round(c.width * 0.42);
-  const right = c.image
+  // Portrait and square pictures fill the panel; wide ones would lose their sides, so they sit in a frame.
+  const right = c.image && c.imageAspect <= 1.2
     ? `<img src="${esc(c.image)}" style="width:${panelW}px;height:${c.height}px;object-fit:cover">`
+    : c.image
+    ? `<div style="display:flex;align-items:center;justify-content:center;width:${panelW}px;height:${c.height}px;background:${accent}"><img src="${esc(c.image)}" style="width:${panelW - 64}px;height:${Math.round(Math.min((panelW - 64) / c.imageAspect, c.height - 120))}px;object-fit:cover;border-radius:18px;box-shadow:0 24px 60px rgb(0 0 0 / 0.3)"></div>`
     : `<div style="display:flex;align-items:center;justify-content:center;width:${panelW}px;height:${c.height}px;background:${accent}">${
         c.logo ? `<img src="${esc(c.logo)}" style="width:${Math.round(panelW * 0.42)}px;height:${Math.round(panelW * 0.42)}px;object-fit:contain">` : `<div style="font-family:'${c.headingFont}';font-size:160px;font-weight:700;color:${readableOn(accent)}">${esc(c.siteName.slice(0, 1))}</div>`
       }</div>`;
@@ -128,10 +157,7 @@ const bold: Template = (c) => {
     c,
     accent,
     `${backdrop(c, `<div style="position:absolute;right:-180px;bottom:-260px;width:720px;height:720px;border-radius:9999px;border:2px solid ${alpha(fg, 0.18)}"></div><div style="position:absolute;right:-60px;bottom:-140px;width:480px;height:480px;border-radius:9999px;border:2px solid ${alpha(fg, 0.14)}"></div>`)}
-<div style="position:relative;display:flex;flex-direction:column;justify-content:space-between;width:100%;height:100%;padding:72px 80px 64px">
-  ${mark(c, fg)}
-  ${textBlock(c, fg, muted, { max: 92, eyebrowColor: fg })}
-</div>`,
+${body(c, { pad: [72, 80, 64, 80], fg, muted, max: 92, eyebrowColor: fg })}`,
   );
 };
 

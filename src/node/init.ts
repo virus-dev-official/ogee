@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { imageSize } from "../card.js";
 import { titleFromPath } from "../page.js";
 import { clip, isIdSegment } from "../templates.js";
 import type { BrandFont } from "../types.js";
@@ -47,10 +48,12 @@ export async function init(siteUrl: string, opts: InitOptions) {
   const site = new URL(/^https?:\/\//.test(siteUrl) ? siteUrl : `https://${siteUrl}`).origin;
 
   const trailingSlash = await usesTrailingSlash(scan);
+  ui.step("Looking at each page's pictures");
+  const pictures = await pagePictures(scan);
   ui.step("Getting the logo and fonts");
   const [logo, fonts] = await Promise.all([fetchLogo(scan, assetsDir), fetchFonts(scan, assetsDir)]);
 
-  await writeFile(join(dir, "ogee.config.ts"), configSource(scan, site, { logo, ...fonts, origin: opts.origin, trailingSlash }));
+  await writeFile(join(dir, "ogee.config.ts"), configSource(scan, site, { logo, ...fonts, origin: opts.origin, trailingSlash, pictures }));
   await writeFile(join(dir, "worker.ts"), WORKER);
   await writeFile(join(dir, "wrangler.toml"), wranglerToml(site, !!opts.origin));
   await writeFile(join(dir, ".gitignore"), "node_modules/\n.ogee/\n.wrangler/\n");
@@ -165,6 +168,40 @@ function titleTemplate(scan: SiteScan): string {
   return `%s · ${scan.name}`;
 }
 
+type Pictures = Map<string, { ogImage?: string; image?: string }>;
+
+/**
+ * Decides, per page, between a preview the page already has and a picture to draw into a card.
+ * A page that sets its own card-shaped og:image (about 1.91:1) already has a designed preview: ogee
+ * uses it as it is and makes sure bots see it. Any other picture goes inside ogee's card.
+ */
+async function pagePictures(scan: SiteScan): Promise<Pictures> {
+  const out: Pictures = new Map();
+  await Promise.all(
+    scan.pages.map(async (p) => {
+      if (p.ownOgImage) {
+        const size = await remoteSize(p.ownOgImage);
+        // Card-shaped and named like one: a designed preview. A card-shaped screenshot or upload is
+        // just a picture, and looks better inside a card with the brand and the title.
+        const looksLikeCard = /\/(og|og-?images?|opengraph|social|share|cards?|previews?)\/|og[-_]?image|opengraph|social[-_]?card/i.test(p.ownOgImage);
+        if (size && looksLikeCard && Math.abs(size.width / size.height - 1.91) < 0.2) return void out.set(p.path, { ogImage: p.ownOgImage });
+        if (size && !p.image) return void out.set(p.path, { image: p.ownOgImage });
+      }
+      if (p.image && p.path !== "/") out.set(p.path, { image: p.image });
+    }),
+  );
+  return out;
+}
+
+async function remoteSize(url: string) {
+  try {
+    const r = await fetch(url, { signal: AbortSignal.timeout(10000) });
+    return r.ok ? imageSize(new Uint8Array(await r.arrayBuffer())) : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Does the site redirect /about to /about/? Then its canonical URLs need the slash. */
 async function usesTrailingSlash(scan: SiteScan): Promise<boolean> {
   const path = scan.pages.find((p) => p.path !== "/")?.path;
@@ -178,7 +215,7 @@ async function usesTrailingSlash(scan: SiteScan): Promise<boolean> {
   }
 }
 
-function configSource(scan: SiteScan, site: string, b: { logo?: string; fonts: BrandFont[]; heading?: string; body?: string; headingWeight?: number; origin?: string; trailingSlash: boolean }) {
+function configSource(scan: SiteScan, site: string, b: { logo?: string; fonts: BrandFont[]; heading?: string; body?: string; headingWeight?: number; origin?: string; trailingSlash: boolean; pictures: Pictures }) {
   const home = scan.pages.find((p) => p.path === "/") ?? scan.pages[0]!;
   const isData = (p: PageScan) => p.path.split("/").some(isIdSegment);
   const ordered = [...scan.pages.filter((p) => !isData(p)), ...scan.pages.filter(isData)];
@@ -193,7 +230,9 @@ function configSource(scan: SiteScan, site: string, b: { logo?: string; fonts: B
     const headline = p.h1 && p.h1.length >= 12 && p.h1.length <= 90 && p.h1 !== title && !title.includes(p.h1) ? p.h1 : "";
     const short = !isHome && title.split(/\s+/).length <= 3;
     const extra = headline && (isHome || short) ? `, ogTitle: ${q(headline)}${short ? `, eyebrow: ${q(title)}` : ""}` : "";
-    const line = `    ${q(p.path)}: { title: ${q(clip(title, 90))}${extra}${desc ? `, description: ${q(desc)}` : ""} },`;
+    const pic = b.pictures.get(p.path);
+    const image = pic?.ogImage ? `, ogImage: ${q(pic.ogImage)}` : pic?.image ? `, image: ${q(pic.image)}` : "";
+    const line = `    ${q(p.path)}: { title: ${q(clip(title, 90))}${extra}${desc ? `, description: ${q(desc)}` : ""}${image} },`;
     if (i !== firstData) return line;
     const pattern = p.path.split("/").map((seg) => (isIdSegment(seg) ? ":id" : seg)).join("/");
     return `\n    // These look like pages from your data. A route function for "${pattern}" would cover new ones too.\n${line}`;
@@ -228,7 +267,7 @@ ${brandLines.map((l) => "    " + l).join("\n")}
   // Built in: "minimal", "glow", "split", "bold". Or write your own in \`templates\`.
   card: { template: ${q(template)} },
 
-  routes: {
+  routes: {${[...b.pictures.values()].some((x) => x.ogImage) ? "\n    // ogImage: the page already has its own preview card, and ogee makes sure bots finally see it.\n    // Remove it to have ogee draw one instead. image: the page's picture, drawn into ogee's card." : ""}
 ${routes.join("\n")}
 
     // Pages that come from your data. Return null for ones that don't exist:

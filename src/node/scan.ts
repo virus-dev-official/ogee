@@ -18,6 +18,10 @@ export interface LogoCandidate {
 }
 
 export interface PageScan {
+  /** The page's main picture (product photo, cover, work sample), if it has one. */
+  image: string;
+  /** An og:image this page sets for itself (after JavaScript runs), different from the home page's. */
+  ownOgImage: string;
   path: string;
   title: string;
   description: string;
@@ -258,6 +262,33 @@ function readPage(): Raw {
   };
 }
 
+/**
+ * The picture a page is about: the biggest image near the top that isn't the logo, an icon or a
+ * decoration. Runs inside the page, so it must not use anything from outside its own body.
+ */
+function mainImage(): string {
+  const vw = innerWidth;
+  const vh = innerHeight;
+  const found: { src: string; area: number }[] = [];
+  for (const img of Array.from(document.images)) {
+    const r = img.getBoundingClientRect();
+    if (r.top > vh * 1.3 || r.bottom < 0 || r.width < 160 || r.height < 120) continue;
+    if (img.closest("header, nav, footer, [class*='logo' i], [aria-hidden='true']")) continue;
+    if ((img.naturalWidth || 0) < 300 || !img.currentSrc || img.currentSrc.startsWith("data:")) continue;
+    if (/\.svg(\?|$)/i.test(img.currentSrc) || /avatar|logo|icon|sprite/i.test(img.currentSrc + " " + img.alt)) continue;
+    const s = getComputedStyle(img);
+    if (s.visibility === "hidden" || parseFloat(s.opacity) < 0.3) continue;
+    const area = Math.min(r.width, vw) * Math.min(r.height, vh);
+    if (area > vw * vh * 0.05) found.push({ src: img.currentSrc, area });
+  }
+  found.sort((a, b) => b.area - a.area);
+  const best = found[0];
+  if (!best) return "";
+  // Three or more pictures about as big as the biggest: a grid of things, not one page's picture.
+  if (found.filter((f) => f.area >= best.area * 0.6).length >= 3) return "";
+  return best.src;
+}
+
 async function open(page: PwPage, url: string) {
   try {
     await page.goto(url, { waitUntil: "networkidle", timeout: 30000 });
@@ -385,7 +416,7 @@ export async function scanSite(input: string, opts: ScanOptions): Promise<SiteSc
     await page.screenshot({ path: file });
     return file;
   };
-  pages.push({ path: "/", title: raw.title, description: raw.description, h1: raw.h1?.text ?? "", lead: raw.lead, ogImage: raw.ogImage, screenshot: await shoot("/") });
+  pages.push({ path: "/", title: raw.title, description: raw.description, h1: raw.h1?.text ?? "", lead: raw.lead, ogImage: raw.ogImage, ownOgImage: "", image: await page.evaluate(mainImage), screenshot: await shoot("/") });
 
   // Mobile screenshot of the home page: agents use it to see how the brand holds up small.
   if (opts.screenshots) {
@@ -414,7 +445,8 @@ export async function scanSite(input: string, opts: ScanOptions): Promise<SiteSc
           .find((t) => t.length >= 50 && t.length <= 400) ?? "";
         return { title: document.title.trim(), description: meta('meta[name="description"]') || meta('meta[property="og:description"]'), h1, lead, ogImage: meta('meta[property="og:image"]') };
       });
-      pages.push({ path, ...r, screenshot: await shoot(path) });
+      const ownOgImage = r.ogImage && r.ogImage !== raw.ogImage ? new URL(r.ogImage, origin + path).href : "";
+      pages.push({ path, ...r, ownOgImage, image: await page.evaluate(mainImage), screenshot: await shoot(path) });
     } catch (e) {
       ui.warn(`Couldn't read ${path}: ${(e as Error).message.split("\n")[0]}`);
     }

@@ -107,8 +107,10 @@ export interface CardData {
   /** "/pricing" */
   path: string;
   url: string;
-  /** The page's own image, if it has one. */
+  /** The page's own image, if it has one, ready to use in `<img src>`. */
   image?: string;
+  /** The page image's width divided by its height (1 when unknown). Below 1 it's portrait, like a flyer. */
+  imageAspect: number;
   /** Image source for the brand logo, ready to use in `<img src>`. */
   logo?: string;
   /** The logo's width divided by its height (1 when unknown). Above ~2 it's a wordmark. */

@@ -97,22 +97,22 @@ export function createCardRenderer(site: Site, load: AssetLoader, fetcher: typeo
   const headingFont = brand.headingFont ?? fonts[0]?.family ?? BUILTIN_FONT;
   const bodyFont = brand.bodyFont ?? headingFont;
 
-  const bytes = new Map<string, Promise<Uint8Array | null>>();
+  // Brand files are kept for good; page images for a minute, since they can change. Expiry is
+  // checked on lookup rather than with timers, which would keep a CLI process alive.
+  const bytes = new Map<string, { p: Promise<Uint8Array | null>; until: number }>();
   async function get(src: string, timeout = 6000): Promise<Uint8Array | null> {
-    let p = bytes.get(src);
-    if (!p) {
-      p = (async () => {
-        if (isUrl(src)) {
-          const r = await withTimeout(fetcher(src), timeout);
-          if (!r.ok) return null;
-          return new Uint8Array(await r.arrayBuffer());
-        }
-        return load(src.replace(/^\/+/, ""));
-      })().catch(() => null);
-      bytes.set(src, p);
-      // Remote page images can change; only keep brand files forever.
-      if (isUrl(src) && src !== brand.logo && src !== brand.plate) p.then(() => setTimeout(() => bytes.delete(src), 60_000));
-    }
+    const hit = bytes.get(src);
+    if (hit && hit.until > Date.now()) return hit.p;
+    const p = (async () => {
+      if (isUrl(src)) {
+        const r = await withTimeout(fetcher(src), timeout);
+        if (!r.ok) return null;
+        return new Uint8Array(await r.arrayBuffer());
+      }
+      return load(src.replace(/^\/+/, ""));
+    })().catch(() => null);
+    const keep = !isUrl(src) || src === brand.logo || src === brand.plate || fonts.some((f) => f.src === src);
+    bytes.set(src, { p, until: keep ? Infinity : Date.now() + 60_000 });
     return p;
   }
 
@@ -135,7 +135,8 @@ export function createCardRenderer(site: Site, load: AssetLoader, fetcher: typeo
   async function data(page: ResolvedPage): Promise<CardData> {
     const files = await loadBrand();
     const seed = hash(page.path);
-    const image = page.image ? ((await get(page.image)) ? page.image : undefined) : undefined;
+    const imageBytes = page.image ? await get(page.image) : null;
+    const image = imageBytes ? page.image : undefined;
     return {
       title: page.ogTitle,
       description: page.description,
@@ -145,6 +146,7 @@ export function createCardRenderer(site: Site, load: AssetLoader, fetcher: typeo
       path: page.path,
       url: page.canonical,
       image: image && "ogee-image:" + image,
+      imageAspect: imageBytes ? imageAspect(imageBytes) : 1,
       logo: files.logo ? "ogee-logo" : undefined,
       logoAspect: files.logo ? imageAspect(files.logo) : 1,
       plate: files.plate ? "ogee-plate" : undefined,

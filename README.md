@@ -45,7 +45,8 @@ ogee is a small [Cloudflare Worker](https://developers.cloudflare.com/workers/) 
 site. For every page it:
 
 - writes the right `<title>`, description, canonical URL, Open Graph and Twitter tags, and JSON-LD
-- **draws a preview card for that page** in your colors, fonts and logo (in milliseconds, then cached)
+- **draws a preview card for that page** in your colors, fonts and logo, with the page's own picture
+  (product photo, cover, screenshot) when it has one. In milliseconds, then cached
 - serves `/sitemap.xml` and [`/llms.txt`](https://llmstxt.org) for search engines and AI tools
 - optionally writes the page's text into the HTML, so crawlers see words, not an empty `<div id="root">`
 
@@ -130,6 +131,16 @@ text is still drawn per page on top.
 
 Missing glyphs never show up as boxes: `init` adds a tiny fallback font (≈6 KB) with currency signs like
 ₵ ₦ € £ and letters like ɛ ɔ ŋ, plus anything else your site uses.
+
+## Product photos, covers and screenshots
+
+A card for a product, a post or a portfolio piece should show *that thing*. Give a page an `image` and the
+built-in templates frame it beside the title: tall frames for flyers and phone screens, wide ones for
+photos and screenshots.
+
+`init` finds these for you. For each page it picks the main picture (the biggest one near the top that
+isn't the logo; grids of thumbnails don't count). If a page already sets its own designed preview card
+after JavaScript runs, `init` keeps it as `ogImage`, and ogee makes sure bots finally see it.
 
 ## Pages from your data
 

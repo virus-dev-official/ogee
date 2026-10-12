@@ -178,8 +178,11 @@ describe("cards", () => {
       for (const template of ["minimal", "glow", "split", "bold"]) {
         const site = prepare(defineConfig({ ...base, brand: { ...base.brand, logo: "logo.svg" }, card: { template, format }, routes: { "/x": { title: "Hello ₵ world", eyebrow: "Test" } } }));
         const r = createCardRenderer(site, async (p) => (p === "logo.svg" ? new TextEncoder().encode(svg) : null));
-        const img = await r.render((await resolvePage(site, "/x"))!);
-        expect(imageSize(img)).toEqual({ width: 1200, height: 630 });
+        const page = (await resolvePage(site, "/x"))!;
+        for (const image of [undefined, "logo.svg"]) {
+          const img = await r.render({ ...page, image });
+          expect(imageSize(img)).toEqual({ width: 1200, height: 630 });
+        }
         expect(r.type).toBe(format === "png" ? "image/png" : "image/jpeg");
       }
     }

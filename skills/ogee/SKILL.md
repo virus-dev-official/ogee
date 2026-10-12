@@ -28,12 +28,15 @@ drawn in the site's brand. You design the cards; ogee's CLI collects evidence an
    - A custom template that echoes the site's signature look. This is usually what makes cards feel like
      the site and not like a generic tool.
    - A plate, when the look can't be drawn by the card renderer.
-4. **Write real page text.** Every route in `routes` needs a specific title and a description that would make
+4. **Give pages their pictures.** Product, post and portfolio pages should show their own image: set
+   `image` on the route (or return it from a route function, from your API). The built-in templates frame
+   it beside the text. Pages with `ogImage` already have a designed card and are used as they are.
+5. **Write real page text.** Every route in `routes` needs a specific title and a description that would make
    someone click. Not the site tagline repeated, not "Home".
-5. **Render and look.** Run `npx ogee render --json`, then open every PNG it lists. Check: nothing cut off,
+6. **Render and look.** Run `npx ogee render --json`, then open every PNG it lists. Check: nothing cut off,
    text readable at small sizes (cards show at ~500px wide in chats), the logo clear, the brand obvious.
    Long titles must still fit. Fix and render again until every card is good.
-6. **Show the person** the gallery (`.ogee/cards/index.html`). Don't deploy without asking them.
+7. **Show the person** the gallery (`.ogee/cards/index.html`). Don't deploy without asking them.
 
 ## Writing a card template
 
@@ -62,7 +65,8 @@ export default defineConfig({ /* … */ templates: { brand }, card: { template: 
 ```
 
 `card` has: `title`, `description`, `eyebrow`, `siteName`, `host`, `path`, `url`,
-`image` (the page's own photo, if any), `logo` and `logoAspect` (width ÷ height; above ~2.2 it's a wordmark),
+`image` and `imageAspect` (the page's own picture: product photo, cover, screenshot, flyer; below 1 it's
+portrait), `logo` and `logoAspect` (width ÷ height; above ~2.2 it's a wordmark),
 `plate` (background image, if any), `colors` (`background`, `foreground`, `accent`, `accent2`, `muted`),
 `headingFont`, `bodyFont`, `width`, `height` (1200×630), `seed` and `rand(i)` (stable per page, for
 variety), and `data` (whatever the route put in `data`).
