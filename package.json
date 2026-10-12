@@ -77,5 +77,8 @@
   },
   "allowScripts": {
     "workerd@1.20261006.1": true
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

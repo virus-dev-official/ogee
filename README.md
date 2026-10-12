@@ -279,6 +279,13 @@ npm run test:e2e      # the Worker in the real Workers runtime, in front of a te
 
 Issues and pull requests are welcome, especially new built-in templates.
 
+## Releases
+
+Every version on npm is built and published by [GitHub Actions](.github/workflows/release.yml) from a
+tagged commit in this repo, never from someone's laptop. npm records where each version came from:
+the **Provenance** section on [the npm page](https://www.npmjs.com/package/ogee) links to the exact commit
+and build. Check it from the command line with `npm audit signatures`.
+
 ## License
 
 MIT. Card rendering by [takumi](https://github.com/kane50613/takumi).
