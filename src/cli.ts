@@ -88,7 +88,7 @@ cli
   .action(async (o: { port: number }) => {
     const project = await loadProject();
     const origin = project.config.origin ?? project.config.site;
-    ui.log(`\n  ${pc.bold("ogee dev")}  pages from ${pc.cyan(origin)}\n  Try: ${pc.cyan(`npx ogee check http://localhost:${o.port}/`)}\n`);
+    ui.log(`\n  ${pc.bold("ogee dev")}  pages from ${pc.cyan(origin)}\n  Try: ${pc.cyan(`npx ogee-cli check http://localhost:${o.port}/`)}\n`);
     // --local-upstream keeps request URLs on localhost, so card links in the HTML work locally.
     // Pages still come from the real site, through OGEE_ORIGIN.
     await run("npx", ["wrangler", "dev", "--port", String(o.port), "--local-upstream", `localhost:${o.port}`, "--var", `OGEE_ORIGIN:${origin}`], project.dir);
@@ -99,7 +99,7 @@ cli
   .action(async () => {
     const project = await loadProject();
     await run("npx", ["wrangler", "deploy"], project.dir);
-    ui.log(`\n  Check it: ${pc.cyan(`npx ogee check ${project.config.site}`)}\n`);
+    ui.log(`\n  Check it: ${pc.cyan(`npx ogee-cli check ${project.config.site}`)}\n`);
   });
 
 cli
@@ -125,12 +125,12 @@ drawn in the site's brand. You design the cards; ogee's CLI collects evidence an
 
 ## Getting started
 
-1. \`npx ogee check <url>\`: see what's wrong with a link's preview today (\`--json\` for details).
-2. \`npx ogee init <url>\`: makes an \`ogee/\` folder with the config, Worker, logo and fonts.
+1. \`npx ogee-cli check <url>\`: see what's wrong with a link's preview today (\`--json\` for details).
+2. \`npx ogee-cli init <url>\`: makes an \`ogee/\` folder with the config, Worker, logo and fonts.
    Use \`--origin <url>\` when the site is hosted somewhere the Worker can't sit in front of (Lovable, Vercel…).
-3. \`cd ogee && npx ogee inspect --for-agent --json\`: screenshots and brand data. Read the AGENT.md it writes.
-4. Design, \`npx ogee render --json\`, look at every PNG, repeat.
-5. \`npx ogee dev\` to try the Worker locally; \`npx ogee deploy\` only when the person says so.
+3. \`cd ogee && npx ogee-cli inspect --for-agent --json\`: screenshots and brand data. Read the AGENT.md it writes.
+4. Design, \`npx ogee-cli render --json\`, look at every PNG, repeat.
+5. \`npx ogee-cli dev\` to try the Worker locally; \`npx ogee-cli deploy\` only when the person says so.
 
 ${AGENT_STEPS}
 ${TEMPLATE_GUIDE}`;

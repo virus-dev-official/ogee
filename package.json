@@ -1,5 +1,5 @@
 {
-  "name": "ogee",
+  "name": "ogee-cli",
   "version": "0.1.0",
   "description": "Per-page link previews for single-page apps: Open Graph tags, brand-matched preview cards, sitemap and llms.txt, rendered at the edge. Built for coding agents.",
   "keywords": [

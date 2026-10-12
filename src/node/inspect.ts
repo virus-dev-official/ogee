@@ -47,7 +47,7 @@ export async function inspect(url: string | undefined, opts: { pages: number; ou
     for (const c of cards) if (c.file) files.push(`${rel(c.file)}  (current card for ${c.path})`);
     files.push(`${rel(project.configFile)}  (the config to edit)`);
   } else {
-    files.push("(no ogee.config.ts yet: run `npx ogee init " + target + "` first, then inspect again)");
+    files.push("(no ogee.config.ts yet: run `npx ogee-cli init " + target + "` first, then inspect again)");
   }
 
   const guide = join(out, "AGENT.md");

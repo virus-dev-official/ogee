@@ -7,11 +7,12 @@
 Every page gets its own title, description and a preview card in your brand,<br>
 on WhatsApp, X, LinkedIn, Slack, iMessage, Discord, Google and AI search.
 
-[![npm](https://img.shields.io/npm/v/ogee?color=e8590c)](https://www.npmjs.com/package/ogee)
+[![npm](https://img.shields.io/npm/v/ogee-cli?color=e8590c)](https://www.npmjs.com/package/ogee-cli)
 [![CI](https://github.com/virus-dev-official/ogee/actions/workflows/ci.yml/badge.svg)](https://github.com/virus-dev-official/ogee/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-<sub><i>ogee</i> (oh-jee): <b>OG</b> at the <b>edge</b>. Also the S-shaped curve on old arches.</sub>
+<sub><i>ogee</i> (oh-jee): <b>OG</b> at the <b>edge</b>. Also the S-shaped curve on old arches.<br>
+On npm it's <code>ogee-cli</code>; the command it installs is <code>ogee</code>.</sub>
 
 <img src="docs/hero.png" alt="Before: two links to different pages show the same preview. After ogee: each shows its own card." width="720">
 
@@ -27,7 +28,7 @@ home page's preview, or nothing at all.
 Check any link in five seconds:
 
 ```bash
-npx ogee check https://your-site.com/some-page
+npx ogee-cli check https://your-site.com/some-page
 ```
 
 ```
@@ -56,7 +57,7 @@ before.
 ## Quick start
 
 ```bash
-npx ogee init https://your-site.com
+npx ogee-cli init https://your-site.com
 ```
 
 `init` opens your site in a headless browser and reads what's already there: your **colors** (including
@@ -75,9 +76,9 @@ Then:
 
 ```bash
 cd ogee
-npx ogee render     # draws every card into .ogee/cards/, with a gallery page to look at
-npx ogee dev        # runs the Worker locally in front of your live site
-npx ogee deploy     # puts it live
+npx ogee-cli render     # draws every card into .ogee/cards/, with a gallery page to look at
+npx ogee-cli dev        # runs the Worker locally in front of your live site
+npx ogee-cli deploy     # puts it live
 ```
 
 ## Built for coding agents
@@ -87,17 +88,17 @@ evidence and renders whatever the agent writes, and the agent looks at the resul
 
 Tell Claude Code, Cursor, Codex or any agent:
 
-> Run `npx ogee inspect --for-agent` and make our link previews look great.
+> Run `npx ogee-cli inspect --for-agent` and make our link previews look great.
 
 `inspect` saves screenshots of your site (desktop and phone), the brand values it found, the cards as they
 look now, and an `AGENT.md` with the whole workflow. The agent writes a template that matches your site's
-signature look, runs `npx ogee render --json`, opens every PNG, and keeps going until they're right.
+signature look, runs `npx ogee-cli render --json`, opens every PNG, and keeps going until they're right.
 Every command takes `--json`.
 
 For Claude Code, install the skill once:
 
 ```bash
-npx ogee skill
+npx ogee-cli skill
 ```
 
 ## Cards
@@ -110,7 +111,7 @@ Or write your own. A template is a function that returns HTML:
 
 ```ts
 // templates/brand.ts
-import { esc, fitTitle, type Template } from "ogee";
+import { esc, fitTitle, type Template } from "ogee-cli";
 
 export const brand: Template = (card) => `
 <div style="display:flex;flex-direction:column;justify-content:flex-end;width:100%;height:100%;
@@ -126,7 +127,7 @@ fonts, and no headless browser. Each page gets a stable `card.seed`, so generati
 page but never between renders.
 
 **Designs the renderer can't draw** (WebGL, `backdrop-filter`, layered photography) become a *plate*: write
-the background as an HTML file and `npx ogee plate plate.html` renders it once with a real browser. The
+the background as an HTML file and `npx ogee-cli plate plate.html` renders it once with a real browser. The
 text is still drawn per page on top.
 
 Missing glyphs never show up as boxes: `init` adds a tiny fallback font (≈6 KB) with currency signs like
@@ -146,7 +147,7 @@ after JavaScript runs, `init` keeps it as `ogImage`, and ogee makes sure bots fi
 
 ```ts
 // ogee.config.ts
-import { defineConfig } from "ogee";
+import { defineConfig } from "ogee-cli";
 
 export default defineConfig({
   site: "https://acme.dev",
@@ -229,7 +230,7 @@ else changes. This is the default `init` setup.
 point it at the Worker, and tell ogee where the pages come from:
 
 ```bash
-npx ogee init https://acme.dev --origin https://acme.lovable.app
+npx ogee-cli init https://acme.dev --origin https://acme.lovable.app
 ```
 
 The Cloudflare free plan covers 100,000 Worker requests a day. On a route, every request to your site
@@ -252,7 +253,7 @@ new versions.
 **Does every visitor get the rewritten HTML?** Yes, people and bots alike: it's the same app with a better
 `<head>`, which is what search engines expect.
 
-**Can I see what a page will say?** `npx ogee meta /pricing` prints its tags.
+**Can I see what a page will say?** `npx ogee-cli meta /pricing` prints its tags.
 
 ## Commands
 
@@ -283,7 +284,7 @@ Issues and pull requests are welcome, especially new built-in templates.
 
 Every version on npm is built and published by [GitHub Actions](.github/workflows/release.yml) from a
 tagged commit in this repo, never from someone's laptop. npm records where each version came from:
-the **Provenance** section on [the npm page](https://www.npmjs.com/package/ogee) links to the exact commit
+the **Provenance** section on [the npm page](https://www.npmjs.com/package/ogee-cli) links to the exact commit
 and build. Check it from the command line with `npm audit signatures`.
 
 ## License
