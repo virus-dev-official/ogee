@@ -1,0 +1,81 @@
+{
+  "name": "ogee",
+  "version": "0.1.0",
+  "description": "Per-page link previews for single-page apps: Open Graph tags, brand-matched preview cards, sitemap and llms.txt, rendered at the edge. Built for coding agents.",
+  "keywords": [
+    "open-graph",
+    "og-image",
+    "link-preview",
+    "seo",
+    "spa",
+    "vite",
+    "react",
+    "cloudflare-workers",
+    "edge",
+    "llms-txt",
+    "sitemap",
+    "social-cards",
+    "ai-agents",
+    "claude-code"
+  ],
+  "homepage": "https://github.com/virus-dev-official/ogee#readme",
+  "bugs": {
+    "url": "https://github.com/virus-dev-official/ogee/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/virus-dev-official/ogee.git"
+  },
+  "license": "MIT",
+  "author": "Virus <virus.dev.official@gmail.com>",
+  "type": "module",
+  "bin": {
+    "ogee": "dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./worker": {
+      "types": "./dist/worker.d.ts",
+      "import": "./dist/worker.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "skills"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsup && node dist/cli.js skill --print > skills/ogee/SKILL.md",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "node test/e2e/run.mjs",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build"
+  },
+  "dependencies": {
+    "cac": "^6.7.14",
+    "jiti": "^2.7.0",
+    "node-html-parser": "^9.0.4",
+    "picocolors": "^1.1.1",
+    "playwright-core": "^1.64.0",
+    "takumi-js": "^2.15.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261012.1",
+    "@types/node": "^26.6.5",
+    "tsup": "^8.5.1",
+    "typescript": "5.9",
+    "vitest": "^5.0.4",
+    "wrangler": "^4.149.0"
+  },
+  "allowScripts": {
+    "workerd@1.20261006.1": true
+  }
+}
