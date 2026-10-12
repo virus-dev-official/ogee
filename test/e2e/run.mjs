@@ -35,7 +35,7 @@ mkdirSync(join(dir, "assets"), { recursive: true });
 writeFileSync(join(dir, "assets", "logo.svg"), `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#e8590c"/></svg>`);
 writeFileSync(
   join(dir, "ogee.config.ts"),
-  `import { defineConfig } from "ogee-cli";
+  `import { defineConfig } from "@virusdev/ogee";
 export default defineConfig({
   site: "https://fixture.test",
   name: "Fixture",
@@ -51,7 +51,7 @@ export default defineConfig({
 });
 `,
 );
-writeFileSync(join(dir, "worker.ts"), `import { createWorker } from "ogee-cli/worker";\nimport config from "./ogee.config";\nexport default createWorker(config);\n`);
+writeFileSync(join(dir, "worker.ts"), `import { createWorker } from "@virusdev/ogee/worker";\nimport config from "./ogee.config";\nexport default createWorker(config);\n`);
 writeFileSync(
   join(dir, "wrangler.toml"),
   `name = "ogee-e2e"
@@ -60,8 +60,8 @@ compatibility_date = "2026-10-01"
 compatibility_flags = ["nodejs_compat"]
 
 [alias]
-"ogee-cli/worker" = "${join(root, "dist", "worker.js")}"
-"ogee-cli" = "${join(root, "dist", "index.js")}"
+"@virusdev/ogee/worker" = "${join(root, "dist", "worker.js")}"
+"@virusdev/ogee" = "${join(root, "dist", "index.js")}"
 
 [assets]
 directory = "./assets"

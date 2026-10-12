@@ -186,7 +186,7 @@ export function printCheck(r: CheckResult) {
   console.log(`  Preview score: ${color(pc.bold(`${r.score}/10`))}`);
   if (r.findings.some((f) => f.level !== "ok" && ["spa", "og:image", "content", "title", "og:title", "description"].includes(f.key))) {
     console.log();
-    console.log(`  ${pc.cyan("→")} Fix it: ${pc.bold("npx ogee-cli init " + new URL(r.url).origin)}`);
+    console.log(`  ${pc.cyan("→")} Fix it: ${pc.bold("npx @virusdev/ogee init " + new URL(r.url).origin)}`);
   }
   console.log();
 }

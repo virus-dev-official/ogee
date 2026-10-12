@@ -29,5 +29,5 @@ export async function plate(project: Project, input: string, opts: { name?: stri
   }
   if (ui.json) return console.log(JSON.stringify({ file, name }));
   ui.ok(`Saved ${pc.bold(relative(process.cwd(), file))} (${width}×${height})`);
-  if (project.config.brand.plate !== name) ui.log(`  Now set ${pc.cyan(`brand.plate: "${name}"`)} in ogee.config.ts and run ${pc.cyan("npx ogee-cli render")}.`);
+  if (project.config.brand.plate !== name) ui.log(`  Now set ${pc.cyan(`brand.plate: "${name}"`)} in ogee.config.ts and run ${pc.cyan("npx @virusdev/ogee render")}.`);
 }

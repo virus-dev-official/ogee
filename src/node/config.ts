@@ -37,10 +37,10 @@ export function findConfig(start = process.cwd()): string | null {
 
 export async function loadProject(cwd?: string): Promise<Project> {
   const configFile = findConfig(cwd);
-  if (!configFile) fail(`No ogee.config.ts here. Run ${"`npx ogee-cli init <your site's URL>`"} first.`);
-  // Configs import "ogee-cli"; resolve it to this very CLI so they load before (or without) npm install.
+  if (!configFile) fail(`No ogee.config.ts here. Run ${"`npx @virusdev/ogee init <your site's URL>`"} first.`);
+  // Configs import "@virusdev/ogee"; resolve it to this very CLI so they load before (or without) npm install.
   const self = join(dirname(fileURLToPath(import.meta.url)), "index.js");
-  const jiti = createJiti(import.meta.url, { moduleCache: false, fsCache: false, alias: existsSync(self) ? { "ogee-cli": self } : {} });
+  const jiti = createJiti(import.meta.url, { moduleCache: false, fsCache: false, alias: existsSync(self) ? { "@virusdev/ogee": self } : {} });
   let mod: { default?: OgeeConfig };
   try {
     mod = (await jiti.import(configFile)) as { default?: OgeeConfig };

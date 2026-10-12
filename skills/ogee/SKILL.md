@@ -10,12 +10,12 @@ drawn in the site's brand. You design the cards; ogee's CLI collects evidence an
 
 ## Getting started
 
-1. `npx ogee-cli check <url>`: see what's wrong with a link's preview today (`--json` for details).
-2. `npx ogee-cli init <url>`: makes an `ogee/` folder with the config, Worker, logo and fonts.
+1. `npx @virusdev/ogee check <url>`: see what's wrong with a link's preview today (`--json` for details).
+2. `npx @virusdev/ogee init <url>`: makes an `ogee/` folder with the config, Worker, logo and fonts.
    Use `--origin <url>` when the site is hosted somewhere the Worker can't sit in front of (Lovable, Vercel…).
-3. `cd ogee && npx ogee-cli inspect --for-agent --json`: screenshots and brand data. Read the AGENT.md it writes.
-4. Design, `npx ogee-cli render --json`, look at every PNG, repeat.
-5. `npx ogee-cli dev` to try the Worker locally; `npx ogee-cli deploy` only when the person says so.
+3. `cd ogee && npx @virusdev/ogee inspect --for-agent --json`: screenshots and brand data. Read the AGENT.md it writes.
+4. Design, `npx @virusdev/ogee render --json`, look at every PNG, repeat.
+5. `npx @virusdev/ogee dev` to try the Worker locally; `npx @virusdev/ogee deploy` only when the person says so.
 
 ## How to make great cards
 
@@ -33,7 +33,7 @@ drawn in the site's brand. You design the cards; ogee's CLI collects evidence an
    it beside the text. Pages with `ogImage` already have a designed card and are used as they are.
 5. **Write real page text.** Every route in `routes` needs a specific title and a description that would make
    someone click. Not the site tagline repeated, not "Home".
-6. **Render and look.** Run `npx ogee-cli render --json`, then open every PNG it lists. Check: nothing cut off,
+6. **Render and look.** Run `npx @virusdev/ogee render --json`, then open every PNG it lists. Check: nothing cut off,
    text readable at small sizes (cards show at ~500px wide in chats), the logo clear, the brand obvious.
    Long titles must still fit. Fix and render again until every card is good.
 7. **Show the person** the gallery (`.ogee/cards/index.html`). Don't deploy without asking them.
@@ -45,7 +45,7 @@ A template is a function that takes `card` and returns an HTML string. Put it in
 
 ```ts
 // templates/brand.ts
-import { esc, fitTitle, alpha, type Template } from "ogee-cli";
+import { esc, fitTitle, alpha, type Template } from "@virusdev/ogee";
 
 export const brand: Template = (card) => `
 <div style="position:relative;display:flex;width:${card.width}px;height:${card.height}px;background:${card.colors.background};overflow:hidden">
@@ -72,7 +72,7 @@ portrait), `logo` and `logoAspect` (width ÷ height; above ~2.2 it's a wordmark)
 variety), and `data` (whatever the route put in `data`).
 Use `<img src="${card.logo}">`, `<img src="${card.plate}">` and `<img src="${card.image}">` as they are.
 
-Helpers from "ogee-cli": `esc` (always escape text), `fitTitle(title, maxPx)` (size that fits),
+Helpers from "@virusdev/ogee": `esc` (always escape text), `fitTitle(title, maxPx)` (size that fits),
 `clip(text, chars)` (shorten at a word), `alpha(color, 0.5)`, `readableOn(bg)` (black or white), `isDark(color)`.
 
 ### What the renderer supports (takumi, not a browser)
@@ -85,5 +85,5 @@ Helpers from "ogee-cli": `esc` (always escape text), `fitTitle(title, maxPx)` (s
 - Don't use `line-clamp` on text that might fit exactly (it drops the last line). Use `clip()` instead.
 - No external CSS, no web fonts by URL, no JavaScript. Fonts must be listed in `brand.fonts` (files in `assets/`).
 - If the look needs something the renderer can't draw (WebGL, complex CSS, photos composited with text),
-  make a **plate**: write `plate.html` with the background only (no text), run `npx ogee-cli plate plate.html`,
+  make a **plate**: write `plate.html` with the background only (no text), run `npx @virusdev/ogee plate plate.html`,
   set `brand.plate: "plate.png"`, and draw the text on top in the template.

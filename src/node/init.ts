@@ -65,7 +65,7 @@ export async function init(siteUrl: string, opts: InitOptions) {
         private: true,
         type: "module",
         scripts: { dev: "ogee dev", render: "ogee render", deploy: "ogee deploy", check: `ogee check ${site}` },
-        devDependencies: { "ogee-cli": await ogeeVersion(), wrangler: "^4.149.0" },
+        devDependencies: { "@virusdev/ogee": await ogeeVersion(), wrangler: "^4.149.0" },
       },
       null,
       2,
@@ -89,11 +89,11 @@ export async function init(siteUrl: string, opts: InitOptions) {
   ${pc.dim("pages")}    ${scan.pages.length} found  ${pc.dim(scan.pages.map((p) => p.path).slice(0, 6).join("  "))}
 
   Next:
-    ${pc.cyan(`cd ${rel} && npx ogee-cli render`)}   see every card in .ogee/cards/
-    ${pc.cyan("npx ogee-cli dev")}                     run the Worker locally against your site
-    ${pc.cyan("npx ogee-cli deploy")}                  put it live (needs your domain on Cloudflare)
+    ${pc.cyan(`cd ${rel} && npx @virusdev/ogee render`)}   see every card in .ogee/cards/
+    ${pc.cyan("npx @virusdev/ogee dev")}                     run the Worker locally against your site
+    ${pc.cyan("npx @virusdev/ogee deploy")}                  put it live (needs your domain on Cloudflare)
 
-  Using a coding agent? Tell it: ${pc.bold('"run npx ogee-cli inspect --for-agent and make the cards look great"')}
+  Using a coding agent? Tell it: ${pc.bold('"run npx @virusdev/ogee inspect --for-agent and make the cards look great"')}
 `);
 }
 
@@ -107,7 +107,7 @@ function swatch(hex: string) {
 /* --------------------------------------------------------------- the files */
 
 const WORKER = `// The ogee Worker. Everything about your pages lives in ogee.config.ts.
-import { createWorker } from "ogee-cli/worker";
+import { createWorker } from "@virusdev/ogee/worker";
 import config from "./ogee.config";
 
 export default createWorker(config);
@@ -251,9 +251,9 @@ function configSource(scan: SiteScan, site: string, b: { logo?: string; fonts: B
     b.body && b.body !== b.heading && `bodyFont: ${q(b.body)},`,
     b.headingWeight && b.headingWeight !== 700 && `headingWeight: ${b.headingWeight},`,
   ].filter(Boolean);
-  return `import { defineConfig } from "ogee-cli";
+  return `import { defineConfig } from "@virusdev/ogee";
 
-// Made by \`ogee init\` from ${scan.url}. Edit anything; \`npx ogee-cli render\` shows the result.
+// Made by \`ogee init\` from ${scan.url}. Edit anything; \`npx @virusdev/ogee render\` shows the result.
 export default defineConfig({
   site: ${q(site)},${b.origin ? `\n  // Where the pages really come from. The Worker fetches them from here.\n  origin: ${q(b.origin)},` : ""}
   name: ${q(scan.name)},
