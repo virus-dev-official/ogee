@@ -50,7 +50,7 @@ export async function loadProject(cwd?: string): Promise<Project> {
   const config = mod.default ?? (mod as OgeeConfig);
   if (!config?.site || !config.brand) fail(`${configFile} must export a config with at least "site", "name" and "brand".`);
   const dir = dirname(configFile);
-  const assetsDir = join(dir, "assets");
+  const assetsDir = join(dir, config.assetsDir ?? "assets");
   const load: AssetLoader = async (p) => {
     try {
       return new Uint8Array(await readFile(join(assetsDir, p)));

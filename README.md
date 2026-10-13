@@ -217,6 +217,7 @@ a slow API never slows the page down.
 | `trailingSlash` | Your URLs end in `/`; `init` detects this |
 | `mount` | Where `page.html` goes; default `#root, #app` |
 | `sitemap`, `llms` | Turn them off, or add `sitemap.paths` |
+| `assetsDir` | Folder with the logo, fonts and plates, next to the config; default `assets` |
 | `cacheTtl` | Seconds to cache lookups and cards; default 300 |
 
 </details>
@@ -232,6 +233,21 @@ point it at the Worker, and tell ogee where the pages come from:
 ```bash
 npx @virusdev/ogee init https://acme.dev --origin https://acme.lovable.app
 ```
+
+**Your site already runs on Workers** (static assets served by a Worker, like most Vite and Astro deploys
+on Cloudflare): let ogee read pages from the same Worker, and keep the logo and fonts in your public folder:
+
+```ts
+// worker.ts
+import { createWorker } from "@virusdev/ogee/worker";
+import config from "./ogee.config";
+
+const previews = createWorker(config, { fetchOrigin: (req, env) => env.ASSETS.fetch(req) });
+export default { fetch: (req, env, ctx) => previews.fetch(req, env, ctx) };
+```
+
+Set `"run_worker_first": true` under `assets` in `wrangler.jsonc`, and `assetsDir: "public"` in
+`ogee.config.ts`. [virusofficial.dev](https://virusofficial.dev) runs exactly this way.
 
 The Cloudflare free plan covers 100,000 Worker requests a day. On a route, every request to your site
 passes through the Worker (scripts and images too, untouched), so they all count. Cards are drawn once and

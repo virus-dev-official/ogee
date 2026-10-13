@@ -44,7 +44,16 @@ export interface OgeeEnv {
 
 const PAGE_TIMEOUT_MS = 3000;
 
-export function createWorker(config: OgeeConfig) {
+export interface WorkerOptions {
+  /**
+   * Where pages come from, when it isn't a server behind the Worker: for a site the same Worker
+   * serves from static assets, pass `(req, env) => env.ASSETS.fetch(req)`. Takes precedence over
+   * `origin` and OGEE_ORIGIN.
+   */
+  fetchOrigin?: (req: Request, env: OgeeEnv) => Promise<Response>
+}
+
+export function createWorker(config: OgeeConfig, options: WorkerOptions = {}) {
   const site = prepare(config);
   const ttl = config.cacheTtl ?? 300;
   let renderer: CardRenderer | null = null;
@@ -68,7 +77,7 @@ export function createWorker(config: OgeeConfig) {
     async fetch(req: Request, env: OgeeEnv = {}, ctx?: ExecutionContext): Promise<Response> {
       const originBase = env.OGEE_ORIGIN || config.origin;
       const url = new URL(req.url);
-      const toOrigin = (r: Request = req) => fromOrigin(r, url, originBase);
+      const toOrigin = (r: Request = req) => (options.fetchOrigin ? options.fetchOrigin(r, env) : fromOrigin(r, url, originBase));
 
       if (req.method !== "GET" && req.method !== "HEAD") return toOrigin();
       const path = normalizePath(url.pathname);

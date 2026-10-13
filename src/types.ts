@@ -190,6 +190,12 @@ export interface OgeeConfig {
   sitemap?: boolean | SitemapOptions;
   /** Serve /llms.txt. On by default. */
   llms?: boolean;
+  /**
+   * The folder holding the logo, fonts and plates, relative to this config file. Defaults to
+   * "assets". A site that serves its own files from the same Worker can point this at its public
+   * folder (e.g. "public"), so the files the CLI reads are the ones the Worker serves.
+   */
+  assetsDir?: string;
   /** Seconds to cache route lookups and cards at the edge. Defaults to 300. */
   cacheTtl?: number;
 }
