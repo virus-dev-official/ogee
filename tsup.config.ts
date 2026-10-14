@@ -14,6 +14,8 @@ export default defineConfig([
     format: "esm",
     target: "node20",
     platform: "node",
+    // An optional dependency: tsup only leaves regular dependencies out of the bundle by itself.
+    external: ["playwright-core"],
     banner: { js: "#!/usr/bin/env node" },
   },
 ]);

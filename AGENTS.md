@@ -13,6 +13,8 @@ and gives every page its own `<head>` and a preview card. These notes are for pe
 - `src/node/` is the CLI only: `scan.ts` (reads a site in a headless browser), `assets.ts` (logo and
   fonts), `init.ts`, `inspect.ts`, `render.ts`, `build.ts` (static hosts), `check.ts`, `plate.ts`, `guide.ts` (the agent instructions,
   shared by `inspect` and `ogee skill`).
+- `examples/` holds runnable setups (a static host, a Node server). Keep them working when the API changes.
+- `playwright-core` is an optional dependency: only `src/node/browser.ts` may import it, lazily.
 - Code in `src/` outside `node/` must not import Node built-ins: it's bundled into users' Workers.
 
 ## Checks

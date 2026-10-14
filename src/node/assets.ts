@@ -35,7 +35,21 @@ async function googleFont(family: string, weight: number): Promise<{ data: Uint8
   if (!url) return null;
   const f = await download(url);
   const got = parseInt(face!.match(/font-weight:\s*(\d+)/)?.[1] ?? String(weight), 10);
-  return f ? { data: f.data, ext: url.split(".").pop()!.split("?")[0]!, weight: got } : null;
+  const ext = f && fontExt(f.data);
+  return f && ext ? { data: f.data, ext, weight: got } : null;
+}
+
+/**
+ * A font file's extension from its first bytes. URLs don't always have one: Google serves some
+ * families from "/l/font?kit=…". Null when it isn't a font at all.
+ */
+export function fontExt(b: Uint8Array): string | null {
+  const tag = String.fromCharCode(b[0] ?? 0, b[1] ?? 0, b[2] ?? 0, b[3] ?? 0);
+  if (tag === "wOF2") return "woff2";
+  if (tag === "wOFF") return "woff";
+  if (tag === "OTTO") return "otf";
+  if (tag === "\x00\x01\x00\x00" || tag === "true") return "ttf";
+  return null;
 }
 
 const nearest = (want: number) => (w: number) => (w === 0 ? 0 : Math.abs(w - want));
@@ -67,8 +81,9 @@ export async function fetchFonts(scan: SiteScan, assetsDir: string): Promise<{ f
       const face = [...faces].sort((a, b) => nearest(weight)(a.weight) - nearest(weight)(b.weight))[0];
       if (face) {
         const d = await download(face.url);
-        if (d) {
-          file = { data: d.data, ext: face.url.split("?")[0]!.split(".").pop()! };
+        const ext = d && fontExt(d.data);
+        if (d && ext) {
+          file = { data: d.data, ext };
           if (face.weight === 0) registeredWeight = undefined;
           else if (face.weight !== weight) registeredWeight = face.weight;
         }
@@ -120,7 +135,7 @@ async function fallbackFont(scan: SiteScan, assetsDir: string): Promise<BrandFon
   const r = await download(`https://fonts.googleapis.com/css2?family=Noto+Sans&text=${encodeURIComponent([...chars].join(""))}`);
   const url = r && new TextDecoder().decode(r.data).match(/src:\s*url\(([^)]+)\)/)?.[1];
   const f = url && (await download(url));
-  if (!f) return null;
+  if (!f || !fontExt(f.data)) return null;
   await writeFile(join(assetsDir, "fonts/fallback.ttf"), f.data);
   return { family: "Noto Sans", src: "fonts/fallback.ttf" };
 }

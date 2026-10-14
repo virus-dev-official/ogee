@@ -1,6 +1,6 @@
 {
   "name": "@virusdev/ogee",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Per-page link previews for single-page apps: Open Graph tags, brand-matched preview cards, sitemap and llms.txt. On Cloudflare Workers, any fetch-based runtime, or any static host. Built for coding agents.",
   "keywords": [
     "open-graph",
@@ -71,8 +71,10 @@
     "jiti": "^2.7.0",
     "node-html-parser": "^9.0.4",
     "picocolors": "^1.1.1",
-    "playwright-core": "^1.64.0",
     "takumi-js": "^2.15.1"
+  },
+  "optionalDependencies": {
+    "playwright-core": "^1.64.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261012.1",

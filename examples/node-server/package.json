@@ -1,0 +1,11 @@
+{
+  "name": "ogee-example-node-server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "@virusdev/ogee": "^0.3.0"
+  }
+}

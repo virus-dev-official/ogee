@@ -6,7 +6,14 @@ import { fail } from "./ui.js";
  * else Playwright's own Chromium. Nothing is downloaded behind your back.
  */
 export async function launchBrowser(): Promise<Browser> {
-  const { chromium } = await import("playwright-core");
+  // An optional dependency, loaded only here: when it's missing, every command that doesn't need a
+  // browser still works, and the ones that do say how to get it.
+  let chromium: typeof import("playwright-core").chromium;
+  try {
+    ({ chromium } = await import("playwright-core"));
+  } catch {
+    fail("This command reads your site in a headless browser, and playwright-core isn't installed.\nInstall it next to ogee: npm install playwright-core");
+  }
   const errors: string[] = [];
   for (const channel of ["chrome", "msedge", "chromium", undefined]) {
     try {

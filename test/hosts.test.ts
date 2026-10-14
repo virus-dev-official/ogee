@@ -4,8 +4,10 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { createHandler, rewriteHtml } from "../src/handler.js";
 import { prepare, resolvePage } from "../src/page.js";
+import { fontExt } from "../src/node/assets.js";
 import { buildStatic, htmlFiles } from "../src/node/build.js";
 import type { Project } from "../src/node/config.js";
+import { hostFromHeaders } from "../src/node/init.js";
 import type { OgeeConfig } from "../src/types.js";
 
 const SHELL = `<!doctype html><html><head><meta charset="utf-8"><title>Fixture App</title>
@@ -130,4 +132,28 @@ describe("static build", () => {
     expect(read("sitemap.xml")).not.toContain("gone");
     expect(read("llms.txt")).toContain("[Pricing](https://fixture.test/pricing)");
   }, 60_000);
+});
+
+describe("init picks a host", () => {
+  const h = (o: Record<string, string>) => hostFromHeaders(new Headers(o));
+  it("uses the static build on Vercel, Netlify and GitHub Pages", () => {
+    expect(h({ "x-vercel-id": "fra1::abc", server: "Vercel" })).toMatchObject({ mode: "static", name: "Vercel" });
+    expect(h({ "x-nf-request-id": "01H", server: "Netlify" })).toMatchObject({ mode: "static", name: "Netlify" });
+    expect(h({ server: "GitHub.com" })).toMatchObject({ mode: "static", name: "GitHub Pages" });
+  });
+  it("uses the Worker behind Cloudflare, and when it can't tell", () => {
+    expect(h({ "cf-ray": "8a-AMS", server: "cloudflare" })).toMatchObject({ mode: "worker" });
+    expect(h({ server: "nginx" })).toMatchObject({ mode: "worker" });
+  });
+});
+
+describe("font files", () => {
+  it("are named by what they are, not by their URL", () => {
+    const b = (s: string) => new Uint8Array([...s].map((c) => c.charCodeAt(0)));
+    expect(fontExt(b("wOF2xxxx"))).toBe("woff2");
+    expect(fontExt(b("wOFFxxxx"))).toBe("woff");
+    expect(fontExt(b("OTTOxxxx"))).toBe("otf");
+    expect(fontExt(new Uint8Array([0, 1, 0, 0, 9]))).toBe("ttf");
+    expect(fontExt(b("<!doctype html>"))).toBeNull();
+  });
 });

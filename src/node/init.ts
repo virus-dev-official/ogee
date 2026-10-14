@@ -15,6 +15,8 @@ import { fail, pc, ui } from "./ui.js";
 export interface InitOptions {
   dir: string;
   origin?: string;
+  /** How ogee runs: as a Cloudflare Worker, or as a step after the app's build. Detected when left out. */
+  host?: HostMode;
   pages: number;
   install: boolean;
   force: boolean;
@@ -46,6 +48,8 @@ export async function init(siteUrl: string, opts: InitOptions) {
   }
   // When the site is read from its origin, the public address is still the one the user gave.
   const site = new URL(/^https?:\/\//.test(siteUrl) ? siteUrl : `https://${siteUrl}`).origin;
+  const host = opts.host ? { mode: opts.host, name: opts.host === "static" ? "a static host" : "Cloudflare", reason: "you chose it" } : await detectHost(opts.origin ?? site, !!opts.origin);
+  ui.step(`Setting up for ${host.name} (${host.reason})`);
 
   const trailingSlash = await usesTrailingSlash(scan);
   ui.step("Looking at each page's pictures");
@@ -53,10 +57,13 @@ export async function init(siteUrl: string, opts: InitOptions) {
   ui.step("Getting the logo and fonts");
   const [logo, fonts] = await Promise.all([fetchLogo(scan, assetsDir), fetchFonts(scan, assetsDir)]);
 
-  await writeFile(join(dir, "ogee.config.ts"), configSource(scan, site, { logo, ...fonts, origin: opts.origin, trailingSlash, pictures }));
-  await writeFile(join(dir, "worker.ts"), WORKER);
-  await writeFile(join(dir, "wrangler.toml"), wranglerToml(site, !!opts.origin));
-  await writeFile(join(dir, ".gitignore"), "node_modules/\n.ogee/\n.wrangler/\n");
+  const worker = host.mode === "worker";
+  await writeFile(join(dir, "ogee.config.ts"), configSource(scan, site, { logo, ...fonts, origin: worker ? opts.origin : undefined, trailingSlash, pictures }));
+  if (worker) {
+    await writeFile(join(dir, "worker.ts"), WORKER);
+    await writeFile(join(dir, "wrangler.toml"), wranglerToml(site, !!opts.origin));
+  }
+  await writeFile(join(dir, ".gitignore"), worker ? "node_modules/\n.ogee/\n.wrangler/\n" : "node_modules/\n.ogee/\n");
   await writeFile(
     join(dir, "package.json"),
     JSON.stringify(
@@ -64,8 +71,8 @@ export async function init(siteUrl: string, opts: InitOptions) {
         name: `ogee-${new URL(site).hostname.replace(/[^a-z0-9]+/g, "-")}`,
         private: true,
         type: "module",
-        scripts: { dev: "ogee dev", render: "ogee render", deploy: "ogee deploy", check: `ogee check ${site}` },
-        devDependencies: { "@virusdev/ogee": await ogeeVersion(), wrangler: "^4.149.0" },
+        scripts: worker ? { dev: "ogee dev", render: "ogee render", deploy: "ogee deploy", check: `ogee check ${site}` } : { render: "ogee render", check: `ogee check ${site}` },
+        devDependencies: { "@virusdev/ogee": await ogeeVersion(), ...(worker && { wrangler: "^4.149.0" }) },
       },
       null,
       2,
@@ -73,14 +80,14 @@ export async function init(siteUrl: string, opts: InitOptions) {
   );
 
   if (opts.install) {
-    ui.step("Installing ogee and wrangler (npm install)");
+    ui.step(worker ? "Installing ogee and wrangler (npm install)" : "Installing ogee (npm install)");
     const r = spawnSync("npm", ["install", "--no-fund", "--no-audit", "--loglevel=error"], { cwd: dir, stdio: ui.json ? "ignore" : "inherit", shell: process.platform === "win32" });
     if (r.status !== 0) ui.warn("npm install failed; run it yourself in " + dir);
   }
 
   const rel = relative(process.cwd(), dir) || ".";
   if (ui.json) {
-    console.log(JSON.stringify({ dir, site, name: scan.name, colors: scan.colors, logo, fonts: fonts.fonts, pages: scan.pages.map((p) => p.path) }, null, 2));
+    console.log(JSON.stringify({ dir, site, host, name: scan.name, colors: scan.colors, logo, fonts: fonts.fonts, pages: scan.pages.map((p) => p.path) }, null, 2));
     return;
   }
   ui.ok(`Made ${pc.bold(rel + "/")} for ${pc.bold(scan.name)}`);
@@ -90,11 +97,53 @@ export async function init(siteUrl: string, opts: InitOptions) {
 
   Next:
     ${pc.cyan(`cd ${rel} && npx @virusdev/ogee render`)}   see every card in .ogee/cards/
-    ${pc.cyan("npx @virusdev/ogee dev")}                     run the Worker locally against your site
-    ${pc.cyan("npx @virusdev/ogee deploy")}                  put it live (needs your domain on Cloudflare)
+${
+  worker
+    ? `    ${pc.cyan("npx @virusdev/ogee dev")}                     run the Worker locally against your site
+    ${pc.cyan("npx @virusdev/ogee deploy")}                  put it live (needs your domain on Cloudflare)`
+    : `
+  Then add ogee to your app's build command, after the build itself, on ${host.name}:
+    ${pc.cyan("<your build> && npx @virusdev/ogee build dist")}   ${pc.dim("(dist: the folder your build writes)")}
+  Pages from your data (\`/blog/:slug\`) need their paths in \`sitemap.paths\` to get their own HTML.
+  ${pc.dim("Prefer a Cloudflare Worker, which handles every page live? Run init again with --host worker --force.")}`
+}
 
   Using a coding agent? Tell it: ${pc.bold('"run npx @virusdev/ogee inspect --for-agent and make the cards look great"')}
 `);
+}
+
+export type HostMode = "worker" | "static";
+
+export interface DetectedHost {
+  mode: HostMode;
+  /** Who hosts the site, as people know it: "Vercel", "Netlify"… */
+  name: string;
+  reason: string;
+}
+
+/**
+ * Picks how ogee should run from the headers the site answers with. Sites on Vercel, Netlify and
+ * GitHub Pages get the static build (no Cloudflare needed); sites already behind Cloudflare, or whose
+ * host we can't tell, get the Worker, which handles every page live.
+ */
+export async function detectHost(url: string, separateOrigin: boolean): Promise<DetectedHost> {
+  if (separateOrigin) return { mode: "worker", name: "Cloudflare", reason: "--origin means a Worker in front of that host" };
+  let headers: Headers;
+  try {
+    headers = (await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(8000) })).headers;
+  } catch {
+    return { mode: "worker", name: "Cloudflare", reason: "couldn't tell the host; --host static for any static host" };
+  }
+  return hostFromHeaders(headers);
+}
+
+export function hostFromHeaders(h: Headers): DetectedHost {
+  const server = (h.get("server") ?? "").toLowerCase();
+  if (h.has("x-vercel-id") || server === "vercel") return { mode: "static", name: "Vercel", reason: "the site is on Vercel" };
+  if (h.has("x-nf-request-id") || server === "netlify") return { mode: "static", name: "Netlify", reason: "the site is on Netlify" };
+  if (server === "github.com" || h.has("x-github-request-id")) return { mode: "static", name: "GitHub Pages", reason: "the site is on GitHub Pages" };
+  if (h.has("cf-ray") || server === "cloudflare") return { mode: "worker", name: "Cloudflare", reason: "the site is already behind Cloudflare" };
+  return { mode: "worker", name: "Cloudflare", reason: "couldn't tell the host; --host static for any static host" };
 }
 
 function swatch(hex: string) {

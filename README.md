@@ -52,7 +52,7 @@ fetch handler on any server or edge runtime, or a build step for any static host
 - serves `/sitemap.xml` and [`/llms.txt`](https://llmstxt.org) for search engines and AI tools
 - optionally writes the page's text into the HTML, so crawlers see words, not an empty `<div id="root">`
 
-You don't change your app, your build or your host. If anything goes wrong, the page is served exactly as
+You don't change your app's code. If anything goes wrong, the page is served exactly as
 before.
 
 ## Quick start
@@ -63,21 +63,38 @@ npx @virusdev/ogee init https://your-site.com
 
 `init` opens your site in a headless browser and reads what's already there: your **colors** (including
 shadcn/Tailwind `--primary` tokens), your **fonts** (downloaded from your site or Google Fonts), your
-**logo**, and your **pages** with their real headlines. It writes an `ogee/` folder:
+**logo**, and your **pages** with their real headlines. It also works out **where your site is hosted**
+and sets ogee up to match:
+
+- On Vercel, Netlify or GitHub Pages: a step after your app's build (`ogee build`). No Cloudflare, no server.
+- Behind Cloudflare, or a host it can't tell: a Worker in front of your site, which handles every page live.
+
+Choose yourself with `--host static` or `--host worker`. Either way you get an `ogee/` folder:
 
 ```
 ogee/
   ogee.config.ts    your pages and brand, all editable
-  worker.ts         three lines
-  wrangler.toml     where it runs
   assets/           logo.png, fonts/
+  worker.ts         three lines (Worker only)
+  wrangler.toml     where it runs (Worker only)
 ```
 
-Then:
+Then look at your cards:
 
 ```bash
 cd ogee
 npx @virusdev/ogee render     # draws every card into .ogee/cards/, with a gallery page to look at
+```
+
+And put them live. On a static host, add ogee to your build command, after your app's own build:
+
+```bash
+vite build && npx @virusdev/ogee build dist
+```
+
+With the Worker:
+
+```bash
 npx @virusdev/ogee dev        # runs the Worker locally in front of your live site
 npx @virusdev/ogee deploy     # puts it live
 ```
@@ -122,7 +139,7 @@ export const brand: Template = (card) => `
 </div>`;
 ```
 
-Cards are drawn by [takumi](https://github.com/kane50613/takumi), which runs in the Worker as WebAssembly:
+Cards are drawn by [takumi](https://github.com/kane50613/takumi), which runs in the Worker as WebAssembly, and in Node for `ogee build`:
 flexbox, gradients, `filter: blur()`, blend modes, masks, clip paths, SVG filters (film grain!), custom
 fonts, and no headless browser. Each page gets a stable `card.seed`, so generative backgrounds differ per
 page but never between renders.
@@ -226,9 +243,9 @@ a slow API never slows the page down.
 ## Where it runs
 
 **Your domain is already on Cloudflare** (proxied, orange cloud): ogee runs on a route in front of it. Nothing
-else changes. This is the default `init` setup.
+else changes. This is what `init` sets up for sites already behind Cloudflare.
 
-**Your app lives somewhere else** (Lovable, Vercel, Netlify, GitHub Pages…): put your domain on Cloudflare,
+**Your app lives on a host you can't add a build step to** (Lovable, Bolt…): put your domain on Cloudflare,
 point it at the Worker, and tell ogee where the pages come from:
 
 ```bash
@@ -281,6 +298,12 @@ Bun.serve({ fetch: (req) => ogee.fetch(req) });
 Pass `fetchOrigin` instead of `origin` to read pages yourself, and `loadAsset` to give it the logo and fonts.
 Cards are kept in memory by default (`cache` takes your own).
 
+On Deno it's `Deno.serve((req) => ogee.fetch(req))`, in Hono `app.all("*", (c) => ogee.fetch(c.req.raw))`.
+A plain Node server needs a few lines to turn its requests into `Request`s, shown in
+[examples/node-server](examples/node-server).
+
+More in [examples/](examples): [a static host](examples/static-host) and [a Node server](examples/node-server).
+
 ## FAQ
 
 **Why not just use Next.js or Astro?** If you can, server rendering solves this too. ogee is for the
@@ -304,14 +327,14 @@ new versions.
 | | |
 |---|---|
 | `ogee check <url>` | Grade a link's preview and explain what's wrong |
-| `ogee init <url>` | Set up: brand, logo, fonts, pages |
+| `ogee init <url>` | Set up: brand, logo, fonts, pages, and how it runs for your host |
 | `ogee inspect [url] --for-agent` | Screenshots and brand data for a coding agent |
 | `ogee render [paths…]` | Draw cards into `.ogee/cards/`, with a gallery |
 | `ogee plate <file.html>` | Render a background image with a real browser |
 | `ogee meta <path>` | Print the tags for one page |
 | `ogee build [dir]` | Write every page's HTML, card, sitemap and llms.txt into a built site |
-| `ogee dev` | Run the Worker locally in front of your live site |
-| `ogee deploy` | Deploy with wrangler |
+| `ogee dev` | Run the Worker locally in front of your live site (Worker only) |
+| `ogee deploy` | Deploy with wrangler (Worker only) |
 | `ogee skill` | Install the Claude Code skill |
 
 ## Contributing

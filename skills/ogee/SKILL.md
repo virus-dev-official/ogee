@@ -11,8 +11,9 @@ static hosts) and gives every page its own <head> and a preview card drawn in th
 ## Getting started
 
 1. `npx @virusdev/ogee check <url>`: see what's wrong with a link's preview today (`--json` for details).
-2. `npx @virusdev/ogee init <url>`: makes an `ogee/` folder with the config, Worker, logo and fonts.
-   Use `--origin <url>` when the site is hosted somewhere the Worker can't sit in front of (Lovable, Vercel…).
+2. `npx @virusdev/ogee init <url>`: makes an `ogee/` folder with the config, logo and fonts, set up for the
+   site's host: a static build step on Vercel, Netlify and GitHub Pages, else a Cloudflare Worker.
+   `--host static|worker` overrides that. `--origin <url>` puts a Worker on the domain in front of another host.
 3. `cd ogee && npx @virusdev/ogee inspect --for-agent --json`: screenshots and brand data. Read the AGENT.md it writes.
 4. Design, `npx @virusdev/ogee render --json`, look at every PNG, repeat.
 5. `npx @virusdev/ogee dev` to try the Worker locally; `npx @virusdev/ogee deploy` only when the person says so.

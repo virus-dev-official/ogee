@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join, relative, resolve } from "node:path";
 import cac from "cac";
@@ -32,12 +33,15 @@ cli
   .command("init <url>", "Set up ogee for a site: reads its brand, logo, fonts and pages")
   .option("--dir <dir>", "Folder to create", { default: "ogee" })
   .option("--origin <url>", "Where the site really lives, if the Worker won't run in front of it (e.g. https://myapp.lovable.app)")
+  .option("--host <mode>", 'How ogee runs: "worker" (Cloudflare) or "static" (a build step for any static host). Detected from the site when left out')
   .option("--pages <n>", "How many pages to read", { default: 12 })
   .option("--no-install", "Don't run npm install")
   .option("--force", "Overwrite an existing setup")
   .example("ogee init https://example.com")
-  .action(async (url: string, o: { dir: string; origin?: string; pages: number; install: boolean; force?: boolean }) => {
-    await init(url, { dir: o.dir, origin: o.origin, pages: Number(o.pages), install: o.install, force: !!o.force });
+  .action(async (url: string, o: { dir: string; origin?: string; host?: string; pages: number; install: boolean; force?: boolean }) => {
+    if (o.host !== undefined && o.host !== "worker" && o.host !== "static") fail(`--host is "worker" or "static", not "${o.host}"`);
+    if (o.host === "static" && o.origin) fail("--origin is for the Worker: a static build reads pages from your own build folder.");
+    await init(url, { dir: o.dir, origin: o.origin, host: o.host as "worker" | "static" | undefined, pages: Number(o.pages), install: o.install, force: !!o.force });
   });
 
 cli
@@ -99,6 +103,7 @@ cli
   .option("--port <port>", "Port", { default: 8787 })
   .action(async (o: { port: number }) => {
     const project = await loadProject();
+    needsWorker(project.dir, "dev");
     const origin = project.config.origin ?? project.config.site;
     ui.log(`\n  ${pc.bold("ogee dev")}  pages from ${pc.cyan(origin)}\n  Try: ${pc.cyan(`npx @virusdev/ogee check http://localhost:${o.port}/`)}\n`);
     // --local-upstream keeps request URLs on localhost, so card links in the HTML work locally.
@@ -110,6 +115,7 @@ cli
   .command("deploy", "Put the Worker live on Cloudflare")
   .action(async () => {
     const project = await loadProject();
+    needsWorker(project.dir, "deploy");
     await run("npx", ["wrangler", "deploy"], project.dir);
     ui.log(`\n  Check it: ${pc.cyan(`npx @virusdev/ogee check ${project.config.site}`)}\n`);
   });
@@ -138,8 +144,9 @@ static hosts) and gives every page its own <head> and a preview card drawn in th
 ## Getting started
 
 1. \`npx @virusdev/ogee check <url>\`: see what's wrong with a link's preview today (\`--json\` for details).
-2. \`npx @virusdev/ogee init <url>\`: makes an \`ogee/\` folder with the config, Worker, logo and fonts.
-   Use \`--origin <url>\` when the site is hosted somewhere the Worker can't sit in front of (Lovable, Vercel…).
+2. \`npx @virusdev/ogee init <url>\`: makes an \`ogee/\` folder with the config, logo and fonts, set up for the
+   site's host: a static build step on Vercel, Netlify and GitHub Pages, else a Cloudflare Worker.
+   \`--host static|worker\` overrides that. \`--origin <url>\` puts a Worker on the domain in front of another host.
 3. \`cd ogee && npx @virusdev/ogee inspect --for-agent --json\`: screenshots and brand data. Read the AGENT.md it writes.
 4. Design, \`npx @virusdev/ogee render --json\`, look at every PNG, repeat.
 5. \`npx @virusdev/ogee dev\` to try the Worker locally; \`npx @virusdev/ogee deploy\` only when the person says so.
@@ -147,6 +154,13 @@ static hosts) and gives every page its own <head> and a preview card drawn in th
 
 ${AGENT_STEPS}
 ${TEMPLATE_GUIDE}`;
+
+/** dev and deploy are for the Worker; a static setup has no wrangler config. */
+function needsWorker(dir: string, cmd: string) {
+  if (["wrangler.toml", "wrangler.jsonc", "wrangler.json"].some((f) => existsSync(join(dir, f)))) return;
+  fail(`\`ogee ${cmd}\` runs the Cloudflare Worker, and there's no wrangler config next to ogee.config.ts.
+For a static host, run \`npx @virusdev/ogee build dist\` after your app's build instead.`);
+}
 
 function run(cmd: string, args: string[], cwd: string) {
   return new Promise<void>((done, reject) => {
