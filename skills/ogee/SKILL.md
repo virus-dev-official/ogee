@@ -5,8 +5,8 @@ description: Fix and design link previews (Open Graph tags, preview cards, sitem
 
 # ogee
 
-ogee runs a Cloudflare Worker in front of a site and gives every page its own <head> and a preview card
-drawn in the site's brand. You design the cards; ogee's CLI collects evidence and renders what you write.
+ogee runs in front of a site (a Cloudflare Worker, a fetch handler on any runtime, or `ogee build` for
+static hosts) and gives every page its own <head> and a preview card drawn in the site's brand. You design the cards; ogee's CLI collects evidence and renders what you write.
 
 ## Getting started
 
@@ -16,6 +16,7 @@ drawn in the site's brand. You design the cards; ogee's CLI collects evidence an
 3. `cd ogee && npx @virusdev/ogee inspect --for-agent --json`: screenshots and brand data. Read the AGENT.md it writes.
 4. Design, `npx @virusdev/ogee render --json`, look at every PNG, repeat.
 5. `npx @virusdev/ogee dev` to try the Worker locally; `npx @virusdev/ogee deploy` only when the person says so.
+   For a static host with no Cloudflare, run `npx @virusdev/ogee build dist` after the app's own build instead.
 
 ## How to make great cards
 

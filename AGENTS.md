@@ -1,15 +1,17 @@
 # Working on ogee
 
-ogee puts a Cloudflare Worker in front of a single-page app and gives every page its own `<head>` and a
-preview card. These notes are for people and coding agents changing ogee itself.
+ogee puts a Cloudflare Worker (or a fetch handler, or a static build step) in front of a single-page app
+and gives every page its own `<head>` and a preview card. These notes are for people and coding agents changing ogee itself.
 
 ## Layout
 
 - `src/` runs everywhere (Node and Workers): `types.ts` (the public config), `routes.ts`, `page.ts`
   (route → resolved page → head tags), `card.ts` (cards with takumi), `templates.ts` (built-ins),
-  `feeds.ts` (sitemap, llms.txt), `worker.ts` (the Worker).
+  `feeds.ts` (sitemap, llms.txt), `core.ts` (request handling for any runtime), `worker.ts` (core plus
+  Cloudflare's HTMLRewriter, cache and assets binding), `html.ts` and `handler.ts` (core with a string
+  rewriter, for every other runtime and for `ogee build`).
 - `src/node/` is the CLI only: `scan.ts` (reads a site in a headless browser), `assets.ts` (logo and
-  fonts), `init.ts`, `inspect.ts`, `render.ts`, `check.ts`, `plate.ts`, `guide.ts` (the agent instructions,
+  fonts), `init.ts`, `inspect.ts`, `render.ts`, `build.ts` (static hosts), `check.ts`, `plate.ts`, `guide.ts` (the agent instructions,
   shared by `inspect` and `ogee skill`).
 - Code in `src/` outside `node/` must not import Node built-ins: it's bundled into users' Workers.
 

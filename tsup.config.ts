@@ -2,7 +2,7 @@ import { defineConfig } from "tsup";
 
 export default defineConfig([
   {
-    entry: { index: "src/index.ts", worker: "src/worker.ts" },
+    entry: { index: "src/index.ts", worker: "src/worker.ts", handler: "src/handler.ts" },
     format: "esm",
     dts: true,
     clean: false,

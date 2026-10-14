@@ -1,8 +1,9 @@
 import { spawn } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { join, relative } from "node:path";
+import { join, relative, resolve } from "node:path";
 import cac from "cac";
 import { headTags, resolvePage } from "./page.js";
+import { buildStatic } from "./node/build.js";
 import { check, printCheck } from "./node/check.js";
 import { loadProject } from "./node/config.js";
 import { AGENT_STEPS, TEMPLATE_GUIDE } from "./node/guide.js";
@@ -66,6 +67,17 @@ cli
   });
 
 cli
+  .command("build [dir]", "Write every page's HTML, card, sitemap.xml and llms.txt into your built site, for any static host")
+  .example("vite build && ogee build dist")
+  .action(async (dir: string | undefined) => {
+    const project = await loadProject();
+    const dist = resolve(dir ?? "dist");
+    ui.step(`Building static pages for ${pc.bold(project.config.name)}`);
+    const r = await buildStatic(project, dist);
+    if (ui.json) console.log(JSON.stringify({ dist, ...r }, null, 2));
+  });
+
+cli
   .command("plate <html>", "Turn an HTML file into a background image in assets/, with a real browser")
   .option("--name <file>", "File name in assets/ (default: <html name>.png)")
   .action(async (html: string, o: { name?: string }) => {
@@ -120,8 +132,8 @@ description: Fix and design link previews (Open Graph tags, preview cards, sitem
 
 # ogee
 
-ogee runs a Cloudflare Worker in front of a site and gives every page its own <head> and a preview card
-drawn in the site's brand. You design the cards; ogee's CLI collects evidence and renders what you write.
+ogee runs in front of a site (a Cloudflare Worker, a fetch handler on any runtime, or \`ogee build\` for
+static hosts) and gives every page its own <head> and a preview card drawn in the site's brand. You design the cards; ogee's CLI collects evidence and renders what you write.
 
 ## Getting started
 
@@ -131,6 +143,7 @@ drawn in the site's brand. You design the cards; ogee's CLI collects evidence an
 3. \`cd ogee && npx @virusdev/ogee inspect --for-agent --json\`: screenshots and brand data. Read the AGENT.md it writes.
 4. Design, \`npx @virusdev/ogee render --json\`, look at every PNG, repeat.
 5. \`npx @virusdev/ogee dev\` to try the Worker locally; \`npx @virusdev/ogee deploy\` only when the person says so.
+   For a static host with no Cloudflare, run \`npx @virusdev/ogee build dist\` after the app's own build instead.
 
 ${AGENT_STEPS}
 ${TEMPLATE_GUIDE}`;

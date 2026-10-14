@@ -42,8 +42,9 @@ npx @virusdev/ogee check https://your-site.com/some-page
 
 ## The fix
 
-ogee is a small [Cloudflare Worker](https://developers.cloudflare.com/workers/) that sits in front of your
-site. For every page it:
+ogee sits in front of your site, as a [Cloudflare Worker](https://developers.cloudflare.com/workers/), a
+fetch handler on any server or edge runtime, or a build step for any static host
+([where it runs](#where-it-runs)). For every page it:
 
 - writes the right `<title>`, description, canonical URL, Open Graph and Twitter tags, and JSON-LD
 - **draws a preview card for that page** in your colors, fonts and logo, with the page's own picture
@@ -253,6 +254,33 @@ The Cloudflare free plan covers 100,000 Worker requests a day. On a route, every
 passes through the Worker (scripts and images too, untouched), so they all count. Cards are drawn once and
 then served from cache.
 
+**Any static host, with nothing running** (Netlify, Vercel, GitHub Pages, Cloudflare Pages, S3…): run
+`ogee build` after your app's build. It writes each page's HTML with its own tags, its card, `sitemap.xml`
+and `llms.txt` into the build folder:
+
+```bash
+vite build && npx @virusdev/ogee build dist
+```
+
+It covers the pages ogee knows at build time: fixed routes, plus whatever `sitemap.paths` returns, so list
+your products or posts there (fetching them from your API is fine). Pages it doesn't know fall back to your
+host's usual single-page-app handling. If your pages come and go faster than you deploy, use the Worker or
+a handler instead. On GitHub Pages without Actions, add an empty `.nojekyll` so the `__ogee` folder is served.
+
+**Any server or edge runtime** (Node, Bun, Deno, Vercel or Netlify edge functions, Hono…): the same
+behavior as the Worker, as a plain `(Request) => Response` handler:
+
+```ts
+import { createHandler } from "@virusdev/ogee/handler";
+import config from "./ogee.config";
+
+const ogee = createHandler(config, { origin: "http://localhost:4173" });
+Bun.serve({ fetch: (req) => ogee.fetch(req) });
+```
+
+Pass `fetchOrigin` instead of `origin` to read pages yourself, and `loadAsset` to give it the logo and fonts.
+Cards are kept in memory by default (`cache` takes your own).
+
 ## FAQ
 
 **Why not just use Next.js or Astro?** If you can, server rendering solves this too. ogee is for the
@@ -281,6 +309,7 @@ new versions.
 | `ogee render [paths…]` | Draw cards into `.ogee/cards/`, with a gallery |
 | `ogee plate <file.html>` | Render a background image with a real browser |
 | `ogee meta <path>` | Print the tags for one page |
+| `ogee build [dir]` | Write every page's HTML, card, sitemap and llms.txt into a built site |
 | `ogee dev` | Run the Worker locally in front of your live site |
 | `ogee deploy` | Deploy with wrangler |
 | `ogee skill` | Install the Claude Code skill |
@@ -289,7 +318,7 @@ new versions.
 
 ```bash
 npm install
-npm test              # unit tests
+npm test              # unit tests, including the handler and the static build
 npm run build
 npm run test:e2e      # the Worker in the real Workers runtime, in front of a test app
 ```

@@ -1,7 +1,7 @@
 {
   "name": "@virusdev/ogee",
   "version": "0.2.0",
-  "description": "Per-page link previews for single-page apps: Open Graph tags, brand-matched preview cards, sitemap and llms.txt, rendered at the edge. Built for coding agents.",
+  "description": "Per-page link previews for single-page apps: Open Graph tags, brand-matched preview cards, sitemap and llms.txt. On Cloudflare Workers, any fetch-based runtime, or any static host. Built for coding agents.",
   "keywords": [
     "open-graph",
     "og-image",
@@ -16,7 +16,10 @@
     "sitemap",
     "social-cards",
     "ai-agents",
-    "claude-code"
+    "claude-code",
+    "vercel",
+    "netlify",
+    "static-site"
   ],
   "homepage": "https://github.com/virus-dev-official/ogee#readme",
   "bugs": {
@@ -40,6 +43,10 @@
     "./worker": {
       "types": "./dist/worker.d.ts",
       "import": "./dist/worker.js"
+    },
+    "./handler": {
+      "types": "./dist/handler.d.ts",
+      "import": "./dist/handler.js"
     },
     "./package.json": "./package.json"
   },
